@@ -1,6 +1,7 @@
 (ns reddit-tree.core
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require
+   [rid3.core :as rid3 :refer [rid3->]]
    [cljs-http.client :as http]
    [cljs.core.async :refer [<!]]
    [reagent.core :as r]
@@ -36,6 +37,17 @@
            :value @value
            :on-change #(reset! value (-> % .-target .-value))}])
 
+(defn force-viz [ratom]
+  [rid3/viz
+    {:id "force"
+     :ratom ratom
+     :svg {:did-mount (fn [node ratom]
+                        (rid3-> node
+                            (.attr "width" 1000)
+                            (.attr "height" 1000)
+                            (.style "background-color" "grey")))}}])
+    
+
 ;; -------------------------
 ;; Views
 
@@ -43,7 +55,8 @@
   (get-reddit-comments "https://www.reddit.com/r/Hydroponics/comments/p6jlip/growing_medium_falling_out_of_net_pots")
   (let [input-value (r/atom "foo")]
     (fn [] [:div [:h2 "Welcome to Reagent"]
-            [:div [:p "The value: " @input-value] [:p "Change it: "] [atom-input input-value]]])))
+            [:div [:p "The value: " @input-value] [:p "Change it: "] [atom-input input-value]]
+            [:div (force-viz input-value)]])))
 
 
 ;; -------------------------
