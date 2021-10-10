@@ -20,29 +20,64 @@
        nil)))
 
 
-(defn is-comment? [json]
-  (and (:score json) (:body json)))
+(defn ?assoc
+  "Same as assoc, but skip the assoc if v is nil"
+  [m & kvs]
+  (->> kvs
+    (partition 2)
+    (filter second)
+    (map vec)
+    (into m)))
 
 
-;; Returns nested map like {:score  0 :body "" :children [{:score  ...}]}
-(defn get-comments-tree [comments-json]
-  (prn (keys (select-keys comments-json [:score :body :data :children])))
-  (prn (type comments-json))
-  (if (instance? cljs.core/PersistentArrayMap comments-json)
-    (if (is-comment? comments-json)
-      (assoc (select-keys comments-json [:score :body])
-             :children (get-comments-tree (:children comments-json)))
-      (get-comments-tree (:data comments-json)))
-    (if (nil? comments-json)
-      comments-json
-      (mapv get-comments-tree comments-json))))
-    
+(defn simplify-comment-tree
+  "Removes redundant data fields from json"
+  [comments-json]
+  (cond
+    (or (instance? cljs.core/PersistentHashMap comments-json) (instance? cljs.core/PersistentArrayMap comments-json))
+    (let [data (:data comments-json)]
+      (?assoc data
+              :children (simplify-comment-tree (:children data))
+              :replies (simplify-comment-tree (:replies data))))
+    (instance? cljs.core/PersistentVector comments-json)
+    (mapv simplify-comment-tree comments-json)
+    :else
+    comments-json))
+
+
+(defn filter-fields
+  "Removes all nil values, and all non-provided fields from the input json structure."
+  [comments-json & fields]
+  (cond
+    (or (instance? cljs.core/PersistentHashMap comments-json) (instance? cljs.core/PersistentArrayMap comments-json))
+    (let [non-nil-fields (filter (fn [f] (some? (f comments-json))) fields)]
+      (zipmap non-nil-fields
+              (map (fn [f] (apply filter-fields (f comments-json) fields))
+                   non-nil-fields)))
+    ;; This is a way to do it with hard-coded fields, ignoring nils:
+    ;; (?assoc :score (filter-fields (:score comments-json))
+    ;;         :body (filter-fields (:body comments-json))
+    ;;         :replies (filter-fields (:replies comments-json))
+    ;;         :children (filter-fields (:children comments-json))
+    ;;         :data (filter-fields (:data comments-json)))
+    (instance? cljs.core/PersistentVector comments-json)
+    (mapv (fn [e] (apply filter-fields e fields)) comments-json)
+    :else
+    comments-json))
+
 
 (defn get-reddit-comments [link]
   (go (let [response (<! (http/get (str link ".json")
                                    {:with-credentials? false}))]
         (prn (count (:body response)))
-        (prn (get-comments-tree (:body response))))))
+        (prn (type (:body response)))
+        (def filtered-response
+          (filter-fields (:body response) :score :body :replies :children :data))
+        (prn (simplify-comment-tree filtered-response)))))
+        
+        ;; (prn (:body response))
+        ;; (prn (filter-fields (:body response))))))
+        ;;(prn (get-comments-tree (:body response))))))
         ;; mapv is NOT lazy, so we get prints right away!
         ;;(mapv print-comment-bodies (:body response)))))
 
