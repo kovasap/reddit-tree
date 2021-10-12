@@ -1,6 +1,8 @@
 (ns reddit-tree.core
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require
+   [reddit-tree.graph :as rt-g]
+   [reddit-tree.miserables :as miserables]
    [rid3.core :as rid3 :refer [rid3->]]
    [cljs-http.client :as http]
    [cljs.core.async :refer [<!]]
@@ -21,7 +23,7 @@
 
 
 (defn ?assoc
-  "Same as assoc, but skip the assoc if v is nil"
+  "Same as assoc, but skip the assoc if v is nil."
   [m & kvs]
   (->> kvs
     (partition 2)
@@ -31,7 +33,7 @@
 
 
 (defn simplify-comment-tree
-  "Removes redundant data fields from json"
+  "Removes redundant data fields levels from json."
   [comments-json]
   (cond
     (or (instance? cljs.core/PersistentHashMap comments-json) (instance? cljs.core/PersistentArrayMap comments-json))
@@ -66,20 +68,20 @@
     comments-json))
 
 
+(def reddit-comment-data (r/atom {:empty "map"}))
+
+
 (defn get-reddit-comments [link]
-  (go (let [response (<! (http/get (str link ".json")
-                                   {:with-credentials? false}))]
-        (prn (count (:body response)))
-        (prn (type (:body response)))
-        (def filtered-response
-          (filter-fields (:body response) :score :body :replies :children :data))
-        (prn (simplify-comment-tree filtered-response)))))
-        
-        ;; (prn (:body response))
-        ;; (prn (filter-fields (:body response))))))
-        ;;(prn (get-comments-tree (:body response))))))
-        ;; mapv is NOT lazy, so we get prints right away!
-        ;;(mapv print-comment-bodies (:body response)))))
+  (go
+    (let [response (<! (http/get (str link ".json")
+                                 {:with-credentials? false}))]
+      (prn (count (:body response)))
+      (prn (type (:body response)))
+      ;; We are updating the reddit-comment-data atom here with info in this
+      ;; async function. This means that when we access the atom later it's
+      ;; possible that this code hasn't run yet, and that it is still empty!
+      (reset! reddit-comment-data
+              (filter-fields (:body response) :score :body :replies :children :data)))))
 
 
 ;; -------------------------
@@ -90,7 +92,9 @@
            :value @value
            :on-change #(reset! value (-> % .-target .-value))}])
 
+;; Based on https://polymorphiclabs.io/posts-output/2018-01-13-reagent-d3-force-directed-graph/
 (defn force-viz [ratom]
+  (prn "sup" @ratom)
   [rid3/viz
     {:id "force"
      :ratom ratom
@@ -100,10 +104,6 @@
                             (.attr "height" 1000)
                             (.style "background-color" "grey")))}}])
 
-(defn make-html-comment-tree [ratom])
-  
-    
-
 ;; -------------------------
 ;; Views
 
@@ -112,7 +112,9 @@
   (let [input-value (r/atom "foo")]
     (fn [] [:div [:h2 "Welcome to Reagent"]
             [:div [:p "The value: " @input-value] [:p "Change it: "] [atom-input input-value]]
-            [:div (prn input-value)]])))
+            (force-viz reddit-comment-data)
+            (rt-g/viz (r/atom miserables/data))
+            [:div input-value]])))
 
 
 ;; -------------------------

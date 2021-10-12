@@ -8,7 +8,9 @@
  :builds       {:app {:target     :browser
                       :output-dir "public/js"
                       :asset-path "/js"
-                      :modules    {:app {:entries [reddit-tree.core]}}
+                      :modules    {:app {:entries [reddit-tree.graph
+                                                   reddit-tree.miserables
+                                                   reddit-tree.core]}}
                       :devtools   {:after-load reddit-tree.core/mount-root}}}
 
  :dev-http     {3000 {:root    "public"
