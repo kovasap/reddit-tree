@@ -7,6 +7,7 @@
 
 (defn viz
   [ratom]
+  (prn "inviz" @ratom)
   (let [{:keys [links nodes]} @ratom
         width 950
         height 800
@@ -81,6 +82,6 @@
                                             (rid3-> sel
                                                     {:stroke       "#fff"
                                                      :stroke-width 1.5
-                                                     :r            5
+                                                     :r            #(.-size %)
                                                      :fill         #(color (.-group %))}
                                                     (.call drag)))}]}]))
