@@ -3,6 +3,9 @@
   (:require
    [reddit-tree.graph :as rt-g]
    [reddit-tree.miserables :as miserables]
+   [cljs-time.core :as time]
+   [cljs-time.coerce :as ctime]
+   [cljs-time.format :as ftime]
    [rid3.core :as rid3 :refer [rid3->]]
    [cljs-http.client :as http]
    [cljs.core.async :refer [<!]]
@@ -50,10 +53,7 @@
                             (= "" (:replies data)) []
                             (is-map (:replies data)) (simplify-comment-tree (:children (:data (:replies data))))
                             :else []))
-                ;; :children (simplify-comment-tree (:children data))
-                ;; :replies (simplify-comment-tree (:replies data))))
         ;; Removes :replies because we already stored that information under
-        ;; :children.
         :replies))
     (instance? cljs.core/PersistentVector comments-json)
     (mapv simplify-comment-tree comments-json)
@@ -116,7 +116,16 @@
 ;; Converts a reddit score to a value that can be used as a :size for nodes or
 ;; a :value for edges.
 (defn score-to-value [score]
-  (+ 5 score))
+  (+ 5 (Math/log10 (+ 1 score))))
+
+;; Converts a time a comment was posted after OP into an opacity with which to
+;; display that comment.
+(def max-time-secs (* 60 60 24 1))
+(def min-opacity 0.1)
+(def max-opacity 1.0)
+(defn time-to-opacity [secs]
+  (let [time-frac (- 1 (min 1.0 (/ (float secs) max-time-secs)))]
+    (+ min-opacity (* (- max-opacity min-opacity) time-frac))))
 
 
 ;; Note that the into calls in get-nodes/get-links may be O(n) (prepending to a
@@ -124,7 +133,8 @@
 
 (defn get-nodes [comment]
   (into [{:name (get comment :body "OP")
-          :size (score-to-value (get comment :score 1))}]
+          :size (score-to-value (get comment :score 1))
+          :opacity (time-to-opacity (get comment :secs-after-op 0))}]
         (apply concat (mapv get-nodes (:children comment)))))
 
 (defn get-links
@@ -155,6 +165,18 @@
 
 ;; (prn "hello" (make-reddit-comment-data-into-graph example-data))
 
+(defn add-secs-after-op [post-data comment-data]
+  (let [op-time (:created (first (:children post-data)))]
+    (cond
+      (is-map comment-data)
+      (assoc comment-data
+             :secs-after-op (- (:created comment-data) op-time)
+             :children (add-secs-after-op post-data (:children comment-data)))
+      (instance? cljs.core/PersistentVector comment-data)
+      (mapv (partial add-secs-after-op post-data) comment-data)
+      :else
+      comment-data)))
+
 
 (def reddit-post-data (r/atom {:empty "map"}))
 (def reddit-comment-data (r/atom {:empty "map"}))
@@ -164,19 +186,24 @@
   (go
     (let [response (<! (http/get (str link ".json")
                                  {:with-credentials? false}))]
-      (prn "response" (count (:body response)) (type (:body response)))
+      ;; (prn "response" (count (:body response)) (type (:body response)))
       ;; We are updating the reddit-comment-data atom here with info in this
       ;; async function. This means that when we access the atom later it's
       ;; possible that this code hasn't run yet, and that it is still empty!
       (let [simplified-data
             (simplify-comment-tree
               (filter-fields
-                (:body response) :title :selftext :score :body :replies :children :data))
-            [post-data comment-data] simplified-data]
+                (:body response) :title :selftext :score :body :replies :children :data :created))
+            [post-data comment-data] simplified-data
+            time-updated-comment-data (add-secs-after-op post-data comment-data)]
          (reset! reddit-post-data (first (:children post-data)))
-         (reset! reddit-comment-data comment-data)
-         (reset! reddit-comment-graph (make-reddit-comment-data-into-graph comment-data))
-         (prn "graph" @reddit-comment-graph)))))
+         (reset! reddit-comment-data time-updated-comment-data)
+         (reset! reddit-comment-graph
+                 (make-reddit-comment-data-into-graph time-updated-comment-data))))))
+
+
+(defn format-reddit-timestamp [timestamp]
+  (ftime/unparse (:rfc822 ftime/formatters) (ctime/from-long (* 1000 timestamp))))
 
 
 ;; -------------------------
@@ -208,10 +235,15 @@
     (fn [] [:div [:h2 "Welcome to Reagent"]
             [:div [:p "URL: " @input-value]
                   [:p "Title: " (:title @reddit-post-data)]
-                  [:p "Post Text: " (:selftext @reddit-post-data)]
-                  [:p "Change it: "] [atom-input input-value]
-                  [:p "Graph Data: " @reddit-comment-graph]
-                  [:p "Raw Data: " @reddit-comment-data]]
+                  [:p "Time: " (format-reddit-timestamp (:created @reddit-post-data))]
+                  ;; [:p "Post Text: " (:selftext @reddit-post-data)]
+                  [:p "Change it: "] [atom-input input-value]]
+                  ;; [:p "Graph Data: " @reddit-comment-graph]
+                  ;; [:p "Raw Data: " @reddit-comment-data]]
+            [:p "Each node in the graph is a comment. The nodes are sized by "
+             "their score (upvotes - downvotes) and their opacity represents "
+             "their posting time relative to the original post (OP) - darker "
+             "is older (closer to OP)."]
             [rt-g/viz (r/track rt-g/prechew reddit-comment-graph)]
             ;; (force-viz reddit-comment-data)
             ;; (rt-g/viz (r/atom miserables/data))

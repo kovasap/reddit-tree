@@ -75,7 +75,6 @@
 
 (defn viz
   [ratom]
-  (prn "inviz" @ratom)
   (let [viz-state (atom {:width 600
                          :height 800
                          :links-sel nil
@@ -113,10 +112,11 @@
                            :did-mount       (fn [sel _ratom]
                                               (swap! viz-state assoc :nodes-sel sel)
                                               (rid3-> sel
-                                                      {:stroke       "#fff"
-                                                       :stroke-width 1.5
-                                                       :r            #(.-size %)
-                                                       :fill         #(color (.-group %))}
+                                                      {:stroke         "#fff"
+                                                       :stroke-width   1.5
+                                                       :r              #(.-size %)
+                                                       :fill           #(color (.-group %))
+                                                       :fill-opacity   #(.-opacity %)}
                                                       (.call drag)))}]}])))
 
 (defn prechew
