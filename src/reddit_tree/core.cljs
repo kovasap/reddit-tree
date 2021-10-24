@@ -158,7 +158,7 @@
 
 (def reddit-post-data (r/atom {:empty "map"}))
 (def reddit-comment-data (r/atom {:empty "map"}))
-(def reddit-comment-graph (r/atom {:empty "map"}))
+(def reddit-comment-graph (r/atom {:nodes [] :links []}))
 
 (defn update-reddit-data! [link]
   (go
@@ -212,7 +212,7 @@
                   [:p "Change it: "] [atom-input input-value]
                   [:p "Graph Data: " @reddit-comment-graph]
                   [:p "Raw Data: " @reddit-comment-data]]
-            (rt-g/viz reddit-comment-graph)
+            [rt-g/viz (r/track rt-g/prechew reddit-comment-graph)]
             ;; (force-viz reddit-comment-data)
             ;; (rt-g/viz (r/atom miserables/data))
             [:div [:p "End of page"]]])))
