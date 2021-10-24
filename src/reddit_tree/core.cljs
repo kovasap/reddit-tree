@@ -116,11 +116,12 @@
 ;; Converts a reddit score to a value that can be used as a :size for nodes or
 ;; a :value for edges.
 (defn score-to-value [score]
-  (+ 5 (Math/log10 (+ 1 score))))
+  (+ 5 (* 5 (Math/log10 (+ 1 score)))))
 
 ;; Converts a time a comment was posted after OP into an opacity with which to
 ;; display that comment.
-(def max-time-secs (* 60 60 24 1))
+(def max-time-days 1)
+(def max-time-secs (* 60 60 24 max-time-days))
 (def min-opacity 0.1)
 (def max-opacity 1.0)
 (defn time-to-opacity [secs]
@@ -132,10 +133,13 @@
 ;; vector).
 
 (defn get-nodes [comment]
-  (into [{:name (get comment :body "OP")
-          :size (score-to-value (get comment :score 1))
-          :opacity (time-to-opacity (get comment :secs-after-op 0))}]
-        (apply concat (mapv get-nodes (:children comment)))))
+  (let [is-op (not (contains? comment :body))
+        size (score-to-value (get comment :score 1))]
+    (into [{:name (if is-op "OP" (:body comment))
+            :group (if is-op 1 2)
+            :size size
+            :opacity (if is-op 1.0 (time-to-opacity (get comment :secs-after-op 0)))}]
+          (apply concat (mapv get-nodes (:children comment))))))
 
 (defn get-links
   ([comment] (get-links "root" comment))
@@ -206,44 +210,46 @@
   (ftime/unparse (:rfc822 ftime/formatters) (ctime/from-long (* 1000 timestamp))))
 
 
-;; -------------------------
-;; State
+(defn sanitize-reddit-url
+  "Makes sure we can append .json to the given url and get a proper response from reddit."
+  [url]
+  (if (= "/" (subs url (count url) (count url)))
+    (subs url 0 (count url))
+    url))
+
 
 (defn atom-input [value]
   [:input {:type "text"
            :value @value
-           :on-change #((update-reddit-data! @value)
-                        (reset! value (-> % .-target .-value)))}])
-
-;; Based on https://polymorphiclabs.io/posts-output/2018-01-13-reagent-d3-force-directed-graph/
-(defn force-viz [ratom]
-  [rid3/viz
-    {:id "force"
-     :ratom ratom
-     :svg {:did-mount (fn [node ratom]
-                        (rid3-> node
-                            (.attr "width" 1000)
-                            (.attr "height" 1000)
-                            (.style "background-color" "grey")))}}])
+           :on-change (fn [e]
+                        (reset! value (sanitize-reddit-url (-> e .-target .-value)))
+                        (update-reddit-data! @value))}])
 
 ;; -------------------------
 ;; Views
 
+(def test-urls
+  ["https://www.reddit.com/r/interestingasfuck/comments/qew7al/train_to_machu_picchu_with_a_balcony/"
+   "https://www.reddit.com/r/Hydroponics/comments/p6jlip/growing_medium_falling_out_of_net_pots"])
+
 (defn home-page []
-  (let [input-value (r/atom "https://www.reddit.com/r/Hydroponics/comments/p6jlip/growing_medium_falling_out_of_net_pots")]
+  (let [input-value (r/atom (nth test-urls 1))]
     (update-reddit-data! @input-value)
     (fn [] [:div [:h2 "Welcome to Reagent"]
             [:div [:p "URL: " @input-value]
                   [:p "Title: " (:title @reddit-post-data)]
                   [:p "Time: " (format-reddit-timestamp (:created @reddit-post-data))]
                   ;; [:p "Post Text: " (:selftext @reddit-post-data)]
-                  [:p "Change it: "] [atom-input input-value]]
-                  ;; [:p "Graph Data: " @reddit-comment-graph]
-                  ;; [:p "Raw Data: " @reddit-comment-data]]
+                  [:p "Change it: "] [atom-input input-value]
+                  [:p "Graph Data: " @reddit-comment-graph]
+                  [:p "Raw Post Data: " @reddit-post-data]
+                  [:p "Raw Comment Data: " @reddit-comment-data]]
             [:p "Each node in the graph is a comment. The nodes are sized by "
-             "their score (upvotes - downvotes) and their opacity represents "
+             "their score (upvotes - downvotes). Their opacity represents "
              "their posting time relative to the original post (OP) - darker "
-             "is older (closer to OP)."]
+             "is older (closer to OP). All comments will have the same "
+             "(minimum) opacity if they were posted more than " max-time-days
+             " days after the original post."]
             [rt-g/viz (r/track rt-g/prechew reddit-comment-graph)]
             ;; (force-viz reddit-comment-data)
             ;; (rt-g/viz (r/atom miserables/data))
