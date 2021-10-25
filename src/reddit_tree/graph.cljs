@@ -75,13 +75,16 @@
 
 (defn viz
   [ratom]
-  (let [viz-state (atom {:width 600
+  (let [viz-state (atom {:width 800
                          :height 800
                          :links-sel nil
                          :nodes-sel nil})
         sim (create-sim viz-state)
         drag (create-drag sim)
-        color (js/d3.scaleOrdinal (.-schemeCategory10 js/d3))]
+        ;; See
+        ;; https://github.com/d3/d3-scale-chromatic/blob/main/README.md#api-reference
+        ;; for options.
+        color (js/d3.scaleOrdinal (.-schemeSet1 js/d3))]
     (fn [ratom]
       [rid3/viz {:id     "rid3-force-demo"
                  :ratom  ratom

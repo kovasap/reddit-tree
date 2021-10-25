@@ -116,11 +116,13 @@
 ;; Converts a reddit score to a value that can be used as a :size for nodes or
 ;; a :value for edges.
 (defn score-to-value [score]
-  (+ 5 (* 5 (Math/log10 (+ 1 score)))))
+  (if (<= score 0)
+    1
+    (+ 5 (* 5 (Math/log10 score)))))
 
 ;; Converts a time a comment was posted after OP into an opacity with which to
 ;; display that comment.
-(def max-time-days 1)
+(def max-time-days 0.2)
 (def max-time-secs (* 60 60 24 max-time-days))
 (def min-opacity 0.1)
 (def max-opacity 1.0)
@@ -132,14 +134,18 @@
 ;; Note that the into calls in get-nodes/get-links may be O(n) (prepending to a
 ;; vector).
 
-(defn get-nodes [comment]
-  (let [is-op (not (contains? comment :body))
-        size (score-to-value (get comment :score 1))]
-    (into [{:name (if is-op "OP" (:body comment))
-            :group (if is-op 1 2)
-            :size size
-            :opacity (if is-op 1.0 (time-to-opacity (get comment :secs-after-op 0)))}]
-          (apply concat (mapv get-nodes (:children comment))))))
+(defn get-nodes
+  ([comment] (get-nodes 0 comment))
+  ([depth comment]
+   (let [is-op (not (contains? comment :body))
+         size (score-to-value (get comment :score 10))]
+     (into [{:name (if is-op "OP" (:body comment))
+             :group depth  ;; (if is-op 1 2)
+             :depth depth
+             :size size
+             :score (get comment :score 0)
+             :opacity (if is-op 1.0 (time-to-opacity (get comment :secs-after-op 0)))}]
+           (apply concat (mapv (partial get-nodes (+ 1 depth)) (:children comment)))))))
 
 (defn get-links
   ([comment] (get-links "root" comment))
@@ -233,27 +239,35 @@
    "https://www.reddit.com/r/Hydroponics/comments/p6jlip/growing_medium_falling_out_of_net_pots"])
 
 (defn home-page []
-  (let [input-value (r/atom (nth test-urls 1))]
+  (let [input-value (r/atom (nth test-urls 0))]
     (update-reddit-data! @input-value)
-    (fn [] [:div [:h2 "Welcome to Reagent"]
-            [:div [:p "URL: " @input-value]
-                  [:p "Title: " (:title @reddit-post-data)]
-                  [:p "Time: " (format-reddit-timestamp (:created @reddit-post-data))]
-                  ;; [:p "Post Text: " (:selftext @reddit-post-data)]
-                  [:p "Change it: "] [atom-input input-value]
-                  [:p "Graph Data: " @reddit-comment-graph]
-                  [:p "Raw Post Data: " @reddit-post-data]
-                  [:p "Raw Comment Data: " @reddit-comment-data]]
+    (fn [] [:div [:h2 "Reddit Comments"]
+            [:div
+             [:p "Enter URL Here:" [atom-input input-value]]
+             [:p [:b (:title @reddit-post-data)] [:br] " posted on "
+              (format-reddit-timestamp (:created @reddit-post-data))]
+             [:p (count (:nodes @reddit-comment-graph)) " total comments," [:br]
+               (count (filter #(>= (:score %) 1000) (:nodes @reddit-comment-graph))) " with score greater than 1000," [:br]
+               (count (filter #(< 99 (:score %) 1001) (:nodes @reddit-comment-graph))) " with score between 100 and 1000," [:br]
+               (count (filter #(< 49 (:score %) 101) (:nodes @reddit-comment-graph))) " with score between 50 and 100," [:br]
+               (count (filter #(< 14 (:score %) 51) (:nodes @reddit-comment-graph))) " with score between 15 and 50," [:br]
+               (count (filter #(< 6 (:score %) 16) (:nodes @reddit-comment-graph))) " with score between 5 and 15," [:br]
+               (count (filter #(< 2 (:score %) 6) (:nodes @reddit-comment-graph))) " with score between 2 and 5," [:br]
+               (count (filter #(= (:score %) 1) (:nodes @reddit-comment-graph))) " with score of 1," [:br]
+               "and " (count (filter #(< (:score %) 0) (:nodes @reddit-comment-graph))) " with score less than 0."]]
+             ;; [:p "Post Text: " (:selftext @reddit-post-data)]
+            [rt-g/viz (r/track rt-g/prechew reddit-comment-graph)]
             [:p "Each node in the graph is a comment. The nodes are sized by "
              "their score (upvotes - downvotes). Their opacity represents "
              "their posting time relative to the original post (OP) - darker "
              "is older (closer to OP). All comments will have the same "
              "(minimum) opacity if they were posted more than " max-time-days
              " days after the original post."]
-            [rt-g/viz (r/track rt-g/prechew reddit-comment-graph)]
-            ;; (force-viz reddit-comment-data)
-            ;; (rt-g/viz (r/atom miserables/data))
-            [:div [:p "End of page"]]])))
+            [:details
+             [:summary "Raw Data"]
+             [:p "Graph Data: " @reddit-comment-graph]
+             [:p "Post Data: " @reddit-post-data]
+             [:p "Comment Data: " @reddit-comment-data]]])))
 
 
 ;; -------------------------
