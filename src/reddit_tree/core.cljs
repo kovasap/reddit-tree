@@ -143,6 +143,7 @@
              :group depth  ;; (if is-op 1 2)
              :depth depth
              :size size
+             :id (get comment :secs-after-op 0)
              :score (get comment :score 0)
              :opacity (if is-op 1.0 (time-to-opacity (get comment :secs-after-op 0)))}]
            (apply concat (mapv (partial get-nodes (+ 1 depth)) (:children comment)))))))
@@ -167,7 +168,7 @@
 ;; found in miserables.cljs. In other words, converts map like example-data to
 ;; example-graph.
 (defn make-reddit-comment-data-into-graph [data]
-  (let [nodes (into [{:name "root" :size 1}]
+  (let [nodes (into [{:name "root" :size 1 :id -1}]
                     (get-nodes data))
         links (get-links data)]
     {:nodes nodes
