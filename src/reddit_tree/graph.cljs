@@ -3,6 +3,7 @@
 
 (ns reddit-tree.graph
   (:require
+   [clojure.string :as cstring]
    [goog.string :as gstring]
    [goog.string.format]
    [rid3.core :as rid3 :refer [rid3->]]))
@@ -74,10 +75,6 @@
       (.alpha alpha-target)
       (.restart))))
 
-(defn get-node-hover-text-sel [node viz-state]
-  (js/d3.selectAll (gstring/format ".c%s" (.-id node))))
-
-
 (defn viz
   [ratom]
   (let [viz-state (atom {:width 800
@@ -116,7 +113,7 @@
                                                                             js/Math.sqrt)}))}
                           {:kind            :elem-with-data
                            :class           "hover-text"
-                           :tag             "text"
+                           :tag             "foreignObject"
                            ;; :prepare-dataset (fn [ratom] (take 1 (:nodes @ratom)))
                            :prepare-dataset (fn [ratom] (:nodes @ratom))
                            :did-mount       (fn [sel _ratom]
@@ -124,10 +121,11 @@
                                               (rid3-> sel
                                                       {:cx 100
                                                        :cy 100
+                                                       :width 150
+                                                       :height 200
                                                        :class #(str "c" (.-id %))
-                                                       :style {:opacity 0
-                                                               :color "red"}}
-                                                      (.text #(.-name %))))}
+                                                       :style {:opacity 0}}
+                                                      (.html #(str "<p>" (.-name %) "</p>"))))}
                           {:kind            :elem-with-data
                            :class           "nodes"
                            :tag             "circle"
@@ -140,12 +138,11 @@
                                                        :r              #(.-size %)
                                                        :fill           #(color (.-group %))
                                                        :fill-opacity   #(.-opacity %)}
-                                                      (.on "mouseover" (fn [event node]
-                                                                         (-> (get-node-hover-text-sel node viz-state)
-                                                                             (.attr "x" (.-x node))
-                                                                             (.attr "y" (.-y node))
-                                                                             (.style "color" "green")
-                                                                             (.style "opacity" 1))))
+                                                      (.on "mouseover" (fn [_event node]
+                                                                         (-> (js/d3.selectAll (gstring/format ".c%s" (.-id node)))
+                                                                           (.attr "x" (.-x node))
+                                                                           (.attr "y" (.-y node))
+                                                                           (.style "opacity" 1))))
                                                       (.on "mouseout" #(.style (:hover-text-sel @viz-state) "opacity" 0))
                                                       (.call drag)))}]}])))
 

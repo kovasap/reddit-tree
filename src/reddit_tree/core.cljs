@@ -137,9 +137,12 @@
 (defn get-nodes
   ([comment] (get-nodes 0 comment))
   ([depth comment]
-   (let [is-op (not (contains? comment :body))
+   ;; Some comments in the returned json are just hash strings, presumably to
+   ;; save bandwidth.
+   (let [is-hash (string? comment)
+         is-op (and (not is-hash) (not (contains? comment :body)))
          size (score-to-value (get comment :score 10))]
-     (into [{:name (if is-op "OP" (:body comment))
+     (into [{:name (cond is-op "OP" is-hash comment :else (:body comment))
              :group depth  ;; (if is-op 1 2)
              :depth depth
              :size size
@@ -152,8 +155,8 @@
   ([comment] (get-links "root" comment))
   ([parent-name comment]
    (let [children (:children comment)
-         name (get comment :body "OP")
-         score (:score comment)]
+         is-hash (string? comment)
+         name (if is-hash comment (get comment :body "OP"))]
      (into [{:source parent-name :target name :value 1}]
            (apply concat (mapv (partial get-links name) children))))))
 
