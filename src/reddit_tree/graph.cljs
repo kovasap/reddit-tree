@@ -33,25 +33,24 @@
   [sim]
   (-> (js/d3.drag)
       (.on "start" (fn started
-                     [_d _ _]
-                     (if (-> js/d3 .-event .-active zero?)
-                       (doto sim
-                         (.alphaTarget 0.3)
-                         (.restart)))))
+                     [event d _]
+                     (when (-> event .-active zero?)
+                       (-> sim
+                           (.alphaTarget 0.3)
+                           (.restart)))
+                     (set! (.-fx d) (.-x d))
+                     (set! (.-fy d) (.-y d))))
       (.on "drag" (fn dragged
-                    [d _ _]
-                    (let [event (.-event js/d3)]
-                      (prn "d" d)
-                      (prn "event" event)
-                      (set! (.-fx d) (.-x event))
-                      (set! (.-fy d) (.-y event)))))
+                    [event d _]
+                    (set! (.-fx d) (.-x event))
+                    (set! (.-fy d) (.-y event))))
       (.on "end" (fn ended
-                   [d _ _]
-                   (if (-> js/d3 .-event .-active zero?)
-                     (.alphaTarget sim 0))
+                   [event d _]
+                   (when (-> event .-active zero?)
+                     (-> sim
+                         (.alphaTarget 0)))
                    (set! (.-fx d) nil)
                    (set! (.-fy d) nil)))))
-
 
 (defn merge-nodes
   [orig new id]
