@@ -118,7 +118,7 @@
 (defn score-to-value [score]
   (if (<= score 0)
     1
-    (+ 5 (* 5 (Math/log10 score)))))
+    (+ 5 (* 2 (Math/log10 score)))))
 
 ;; Converts a time a comment was posted after OP into an opacity with which to
 ;; display that comment.
@@ -154,7 +154,7 @@
    (let [children (:children comment)
          name (get comment :body "OP")
          score (:score comment)]
-     (into [{:source parent-name :target name :value (score-to-value score)}]
+     (into [{:source parent-name :target name :value 1}]
            (apply concat (mapv (partial get-links name) children))))))
 
 (defn named-links-to-indexed-links [nodes links]
