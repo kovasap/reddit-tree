@@ -3,10 +3,18 @@
 
 (ns reddit-tree.graph
   (:require
+   [sablono.core :as sab]
+   [sablono.server :as server]
    [clojure.string :as cstring]
    [goog.string :as gstring]
    [goog.string.format]
    [rid3.core :as rid3 :refer [rid3->]]))
+
+
+(defn html
+  "Turns hiccup like syntax into an HTML string."
+  [hiccup]
+  (server/render-static (sab/html hiccup)))
 
 
 (defn create-sim
@@ -77,8 +85,8 @@
 
 (defn viz
   [ratom]
-  (let [viz-state (atom {:width 800
-                         :height 800
+  (let [viz-state (atom {:width 1000
+                         :height 1000
                          :hover-text-sel nil
                          :links-sel nil
                          :nodes-sel nil})
@@ -112,21 +120,6 @@
                                                        :stroke-width   #(-> (.-value %)
                                                                             js/Math.sqrt)}))}
                           {:kind            :elem-with-data
-                           :class           "hover-text"
-                           :tag             "foreignObject"
-                           ;; :prepare-dataset (fn [ratom] (take 1 (:nodes @ratom)))
-                           :prepare-dataset (fn [ratom] (:nodes @ratom))
-                           :did-mount       (fn [sel _ratom]
-                                              (swap! viz-state assoc :hover-text-sel sel)
-                                              (rid3-> sel
-                                                      {:cx 100
-                                                       :cy 100
-                                                       :width 150
-                                                       :height 200
-                                                       :class #(str "c" (.-id %))
-                                                       :style {:opacity 0}}
-                                                      (.html #(str "<p>" (.-name %) "</p>"))))}
-                          {:kind            :elem-with-data
                            :class           "nodes"
                            :tag             "circle"
                            :prepare-dataset (fn [ratom] (:nodes @ratom))
@@ -139,12 +132,37 @@
                                                        :fill           #(color (.-group %))
                                                        :fill-opacity   #(.-opacity %)}
                                                       (.on "mouseover" (fn [_event node]
-                                                                         (-> (js/d3.selectAll (gstring/format ".c%s" (.-id node)))
-                                                                           (.attr "x" (.-x node))
-                                                                           (.attr "y" (.-y node))
-                                                                           (.style "opacity" 1))))
-                                                      (.on "mouseout" #(.style (:hover-text-sel @viz-state) "opacity" 0))
-                                                      (.call drag)))}]}])))
+                                                                         (let [hover-text-sel
+                                                                               ;; Hovering OP shows all comments.
+                                                                               ;; TODO fix this so hover texts are shown near their nodes.
+                                                                               (if (= "OP" (.-name node))
+                                                                                 (js/d3.selectAll ".all-hover-text")
+                                                                                 (js/d3.selectAll (gstring/format ".c%s" (.-id node))))]
+                                                                           (-> hover-text-sel
+                                                                               (.attr "x" (- (.-x node) 150))
+                                                                               (.attr "y" (+ (.-y node) 10))
+                                                                               (.classed "fade-out-active" false)))))
+                                                      (.on "mouseout" (fn [_event node]
+                                                                        (-> (js/d3.selectAll (gstring/format ".c%s" (.-id node)))  ;; :hover-text-sel @viz-state)
+                                                                          (.classed "fade-out-active" true))))
+                                                      (.call drag)))}
+                          ;; We put this last so that it renders above the
+                          ;; nodes and links - svg is order dependant like
+                          ;; that.
+                          {:kind            :elem-with-data
+                           :class           "hover-text"
+                           :tag             "foreignObject"
+                           :prepare-dataset (fn [ratom] (:nodes @ratom))
+                           :did-mount       (fn [sel _ratom]
+                                              (swap! viz-state assoc :hover-text-sel sel)
+                                              (rid3-> sel
+                                                      {:cx -100
+                                                       :cy -100
+                                                       :width 300
+                                                       :height 200
+                                                       :class #(str "c" (.-id %) " all-hover-text")}
+                                                      (.html #(html [:a {:href (str "https://www.reddit.com" (.-link %))}
+                                                                     [:p (.-name %)]]))))}]}])))
 
 (defn prechew
   [app-state]

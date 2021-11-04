@@ -138,14 +138,16 @@
   ([comment] (get-nodes 0 comment))
   ([depth comment]
    ;; Some comments in the returned json are just hash strings, presumably to
-   ;; save bandwidth.
+   ;; save bandwidth. This is determined by the "limit" query parameter
+   ;; provided.
    (let [is-hash (string? comment)
          is-op (and (not is-hash) (not (contains? comment :body)))
          size (score-to-value (get comment :score 10))]
-     (into [{:name (cond is-op "OP" is-hash comment :else (:body comment))
+     (into [{:name (cond is-op "OP" is-hash (str "hash_" comment) :else (:body comment))
              :group depth  ;; (if is-op 1 2)
              :depth depth
              :size size
+             :link (get comment :permalink "")
              :id (get comment :secs-after-op 0)
              :score (get comment :score 0)
              :opacity (if is-op 1.0 (time-to-opacity (get comment :secs-after-op 0)))}]
@@ -198,7 +200,7 @@
 
 (defn update-reddit-data! [link]
   (go
-    (let [response (<! (http/get (str link ".json")
+    (let [response (<! (http/get (str link ".json?limit=10000")
                                  {:with-credentials? false}))]
       ;; (prn "response" (count (:body response)) (type (:body response)))
       ;; We are updating the reddit-comment-data atom here with info in this
@@ -207,7 +209,7 @@
       (let [simplified-data
             (simplify-comment-tree
               (filter-fields
-                (:body response) :title :selftext :score :body :replies :children :data :created))
+                (:body response) :title :selftext :score :body :replies :children :data :created :permalink))
             [post-data comment-data] simplified-data
             time-updated-comment-data (add-secs-after-op post-data comment-data)]
          (reset! reddit-post-data (first (:children post-data)))
@@ -230,6 +232,7 @@
 
 (defn atom-input [value]
   [:input {:type "text"
+           :size 100
            :value @value
            :on-change (fn [e]
                         (reset! value (sanitize-reddit-url (-> e .-target .-value)))
@@ -245,20 +248,12 @@
 (defn home-page []
   (let [input-value (r/atom (nth test-urls 0))]
     (update-reddit-data! @input-value)
-    (fn [] [:div [:h2 "Reddit Comments"]
+    (fn [] [:div [:h2 "Reddit Comment Analyzer"]
             [:div
-             [:p "Enter URL Here:" [atom-input input-value]]
+             [:p "Enter URL Here:"]
+             [atom-input input-value]
              [:p [:b (:title @reddit-post-data)] [:br] " posted on "
-              (format-reddit-timestamp (:created @reddit-post-data))]
-             [:p (count (:nodes @reddit-comment-graph)) " total comments," [:br]
-               (count (filter #(>= (:score %) 1000) (:nodes @reddit-comment-graph))) " with score greater than 1000," [:br]
-               (count (filter #(< 99 (:score %) 1001) (:nodes @reddit-comment-graph))) " with score between 100 and 1000," [:br]
-               (count (filter #(< 49 (:score %) 101) (:nodes @reddit-comment-graph))) " with score between 50 and 100," [:br]
-               (count (filter #(< 14 (:score %) 51) (:nodes @reddit-comment-graph))) " with score between 15 and 50," [:br]
-               (count (filter #(< 6 (:score %) 16) (:nodes @reddit-comment-graph))) " with score between 5 and 15," [:br]
-               (count (filter #(< 2 (:score %) 6) (:nodes @reddit-comment-graph))) " with score between 2 and 5," [:br]
-               (count (filter #(= (:score %) 1) (:nodes @reddit-comment-graph))) " with score of 1," [:br]
-               "and " (count (filter #(< (:score %) 0) (:nodes @reddit-comment-graph))) " with score less than 0."]]
+              (format-reddit-timestamp (:created @reddit-post-data))]]
              ;; [:p "Post Text: " (:selftext @reddit-post-data)]
             [rt-g/viz (r/track rt-g/prechew reddit-comment-graph)]
             [:p "Each node in the graph is a comment. The nodes are sized by "
@@ -267,6 +262,15 @@
              "is older (closer to OP). All comments will have the same "
              "(minimum) opacity if they were posted more than " max-time-days
              " days after the original post."]
+            [:p (count (:nodes @reddit-comment-graph)) " total comments," [:br]
+              (count (filter #(>= (:score %) 1000) (:nodes @reddit-comment-graph))) " with score greater than 1000," [:br]
+              (count (filter #(< 99 (:score %) 1001) (:nodes @reddit-comment-graph))) " with score between 100 and 1000," [:br]
+              (count (filter #(< 49 (:score %) 101) (:nodes @reddit-comment-graph))) " with score between 50 and 100," [:br]
+              (count (filter #(< 14 (:score %) 51) (:nodes @reddit-comment-graph))) " with score between 15 and 50," [:br]
+              (count (filter #(< 6 (:score %) 16) (:nodes @reddit-comment-graph))) " with score between 5 and 15," [:br]
+              (count (filter #(< 2 (:score %) 6) (:nodes @reddit-comment-graph))) " with score between 2 and 5," [:br]
+              (count (filter #(= (:score %) 1) (:nodes @reddit-comment-graph))) " with score of 1," [:br]
+              "and " (count (filter #(< (:score %) 0) (:nodes @reddit-comment-graph))) " with score less than 0."]
             [:details
              [:summary "Raw Data"]
              [:p "Graph Data: " @reddit-comment-graph]

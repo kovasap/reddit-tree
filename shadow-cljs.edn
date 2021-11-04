@@ -3,6 +3,7 @@
                 [nrepl "0.8.3"]
                 [cljs-http "0.1.46"]
                 [rid3 "0.2.2"]
+                [sablono "0.8.6"]
                 [com.andrewmcveigh/cljs-time "0.5.2"]
                 ;; [cljsjs/d3 "4.3.0-4"]
                 [reagent "1.1.0"]]
