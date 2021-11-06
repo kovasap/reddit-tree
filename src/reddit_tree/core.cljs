@@ -122,6 +122,7 @@
     (+ 5 (* 2 (Math/log10 score)))))
 
 (def max-time-secs (r/atom 0))
+(def slider-secs-after-op (r/atom 0))
   
 ;; Converts a time a comment was posted after OP into an opacity with which to
 ;; display that comment.
@@ -226,6 +227,7 @@
             [post-data comment-data] simplified-data
             time-updated-comment-data (add-secs-after-op post-data comment-data)]
          (reset! max-time-secs (get-max-time-secs time-updated-comment-data))
+         (reset! slider-secs-after-op (/ @max-time-secs 60))
          (reset! reddit-post-data (first (:children post-data)))
          (reset! reddit-comment-data time-updated-comment-data)
          (reset! reddit-comment-graph
@@ -260,8 +262,6 @@
            (update data :nodes
                    (fn [nodes] (map update-func nodes))))))
 
-(def slider-secs-after-op (r/atom 0))
-  
 (defn mins-after-op-slider [value min max]
   [:input {:type "range" :value value :min min :max max
            :style {:width "100%"}
