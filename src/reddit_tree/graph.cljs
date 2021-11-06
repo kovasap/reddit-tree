@@ -23,6 +23,7 @@
     (doto (js/d3.forceSimulation)
       (.stop)
       (.force "link" (-> (js/d3.forceLink)
+                         (.strength 1.2)
                          (.id #(.-index %))))
       (.force "charge" (js/d3.forceManyBody))
       (.force "center" (js/d3.forceCenter (/ width 2) (/ height 2)))
@@ -132,19 +133,18 @@
                                                        :fill           #(color (.-group %))
                                                        :fill-opacity   #(.-opacity %)}
                                                       (.on "mouseover" (fn [_event node]
-                                                                         (let [hover-text-sel
-                                                                               ;; Hovering OP shows all comments.
-                                                                               ;; TODO fix this so hover texts are shown near their nodes.
-                                                                               (if (= "OP" (.-name node))
-                                                                                 (js/d3.selectAll ".all-hover-text")
-                                                                                 (js/d3.selectAll (gstring/format ".c%s" (.-id node))))]
-                                                                           (-> hover-text-sel
-                                                                               (.attr "x" (- (.-x node) 150))
-                                                                               (.attr "y" (+ (.-y node) 10))
-                                                                               (.classed "fade-out-active" false)))))
+                                                                         (-> (js/d3.selectAll (gstring/format ".c%s" (.-id node)))
+                                                                           (.attr "pointer-events" "all")
+                                                                           (.attr "x" (- (.-x node) 150))
+                                                                           (.attr "y" (+ (.-y node) 10))
+                                                                           (.classed "hovered" true)
+                                                                           (.classed "fade-out-active" false))))
                                                       (.on "mouseout" (fn [_event node]
                                                                         (-> (js/d3.selectAll (gstring/format ".c%s" (.-id node)))  ;; :hover-text-sel @viz-state)
+                                                                          (.attr "pointer-events" "none")
                                                                           (.classed "fade-out-active" true))))
+                                                      (.on "dblclick" (fn [_event node]
+                                                                        (js/window.open (str "https://www.reddit.com" (.-link node)))))
                                                       (.call drag)))}
                           ;; We put this last so that it renders above the
                           ;; nodes and links - svg is order dependant like
@@ -158,10 +158,11 @@
                                               (rid3-> sel
                                                       {:cx -100
                                                        :cy -100
-                                                       :width 300
-                                                       :height 200
-                                                       :class #(str "c" (.-id %) " all-hover-text")}
-                                                      (.html #(html [:a {:href (str "https://www.reddit.com" (.-link %))}
+                                                       :width 1
+                                                       :height 1
+                                                       :opacity 0
+                                                       :class #(str "c" (.-id %))}
+                                                      (.html #(html [:div {:class "hover-text-div"}
                                                                      [:p (.-name %)]]))))}]}])))
 
 (defn prechew

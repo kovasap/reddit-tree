@@ -9,6 +9,7 @@
    [rid3.core :as rid3 :refer [rid3->]]
    [cljs-http.client :as http]
    [cljs.core.async :refer [<!]]
+   [goog.string :as gstring]
    [reagent.core :as r]
    [reagent.dom :as d]))
 
@@ -120,14 +121,14 @@
     1
     (+ 5 (* 2 (Math/log10 score)))))
 
+(def max-time-secs (r/atom 0))
+  
 ;; Converts a time a comment was posted after OP into an opacity with which to
 ;; display that comment.
-(def max-time-days 0.2)
-(def max-time-secs (* 60 60 24 max-time-days))
 (def min-opacity 0.1)
 (def max-opacity 1.0)
 (defn time-to-opacity [secs]
-  (let [time-frac (- 1 (min 1.0 (/ (float secs) max-time-secs)))]
+  (let [time-frac (- 1 (min 1.0 (/ (float secs) @max-time-secs)))]
     (+ min-opacity (* (- max-opacity min-opacity) time-frac))))
 
 
@@ -143,18 +144,22 @@
    (let [is-hash (string? comment)
          is-op (and (not is-hash) (not (contains? comment :body)))
          size (score-to-value (get comment :score 10))]
-     (into [{:name (cond is-op "OP" is-hash (str "hash_" comment) :else (:body comment))
-             :group depth  ;; (if is-op 1 2)
-             :depth depth
-             :size size
-             :link (get comment :permalink "")
-             :id (get comment :secs-after-op 0)
-             :score (get comment :score 0)
-             :opacity (if is-op 1.0 (time-to-opacity (get comment :secs-after-op 0)))}]
-           (apply concat (mapv (partial get-nodes (+ 1 depth)) (:children comment)))))))
+     ;; Not sure where the extra OP node is coming from, we ignore it here when
+     ;; making the graph.
+     (if (and is-op (empty? (:children comment)))
+       []
+       (into [{:name (cond is-op "OP" is-hash (str "hash_" comment) :else (:body comment))
+               :group depth  ;; (if is-op 1 2)
+               :depth depth
+               :size size
+               :link (get comment :permalink "")
+               :id (get comment :secs-after-op 0)
+               :score (get comment :score 0)
+               :secs-after-op (get comment :secs-after-op 0)
+               :opacity (if is-op 1.0 (time-to-opacity (get comment :secs-after-op 0)))}]
+             (apply concat (mapv (partial get-nodes (+ 1 depth)) (:children comment))))))))
 
 (defn get-links
-  ([comment] (get-links "root" comment))
   ([parent-name comment]
    (let [children (:children comment)
          is-hash (string? comment)
@@ -173,9 +178,8 @@
 ;; found in miserables.cljs. In other words, converts map like example-data to
 ;; example-graph.
 (defn make-reddit-comment-data-into-graph [data]
-  (let [nodes (into [{:name "root" :size 1 :id -1}]
-                    (get-nodes data))
-        links (get-links data)]
+  (let [nodes (get-nodes data)
+        links (get-links "OP" data)]
     {:nodes nodes
      :links (named-links-to-indexed-links nodes links)}))
 
@@ -193,6 +197,15 @@
       :else
       comment-data)))
 
+(defn get-max-time-secs [comment-data]
+  (cond
+    (is-map comment-data)
+    (max (:secs-after-op comment-data) (get-max-time-secs (:children comment-data)))
+    (instance? cljs.core/PersistentVector comment-data)
+    (if (empty? comment-data) 0
+      (apply max (mapv get-max-time-secs comment-data)))
+    :else
+    comment-data))
 
 (def reddit-post-data (r/atom {:empty "map"}))
 (def reddit-comment-data (r/atom {:empty "map"}))
@@ -212,6 +225,7 @@
                 (:body response) :title :selftext :score :body :replies :children :data :created :permalink))
             [post-data comment-data] simplified-data
             time-updated-comment-data (add-secs-after-op post-data comment-data)]
+         (reset! max-time-secs (get-max-time-secs time-updated-comment-data))
          (reset! reddit-post-data (first (:children post-data)))
          (reset! reddit-comment-data time-updated-comment-data)
          (reset! reddit-comment-graph
@@ -230,13 +244,36 @@
     url))
 
 
-(defn atom-input [value]
+(defn url-input [value]
   [:input {:type "text"
            :size 100
            :value @value
            :on-change (fn [e]
                         (reset! value (sanitize-reddit-url (-> e .-target .-value)))
                         (update-reddit-data! @value))}])
+
+(defn update-nodes!
+  "Updates all nodes in reddit-comment-graph with the given function (that takes and returns a node)."
+  [update-func]
+  (swap! reddit-comment-graph
+         (fn [data]
+           (update data :nodes
+                   (fn [nodes] (map update-func nodes))))))
+
+(def slider-secs-after-op (r/atom 0))
+  
+(defn mins-after-op-slider [value min max]
+  [:input {:type "range" :value value :min min :max max
+           :style {:width "100%"}
+           :on-change (fn [e]
+                        (let [new-value (js/parseInt (.. e -target -value))]
+                          (reset! slider-secs-after-op new-value)
+                          (update-nodes!
+                            (fn [node]
+                              (let [selected-by-slider
+                                    (<= 0 (- (* @slider-secs-after-op 60) (:secs-after-op node)))]
+                                (assoc node :opacity
+                                       (if selected-by-slider 1 0)))))))}])
 
 ;; -------------------------
 ;; Views
@@ -246,21 +283,25 @@
    "https://www.reddit.com/r/Hydroponics/comments/p6jlip/growing_medium_falling_out_of_net_pots"])
 
 (defn home-page []
-  (let [input-value (r/atom (nth test-urls 0))]
+  (let [input-value (r/atom (nth test-urls 1))]
     (update-reddit-data! @input-value)
     (fn [] [:div [:h2 "Reddit Comment Analyzer"]
             [:div
-             [:p "Enter URL Here:"]
-             [atom-input input-value]
+             [:p "Enter URL Here:" [:br] [url-input input-value]]
              [:p [:b (:title @reddit-post-data)] [:br] " posted on "
-              (format-reddit-timestamp (:created @reddit-post-data))]]
+              (format-reddit-timestamp (:created @reddit-post-data))]
              ;; [:p "Post Text: " (:selftext @reddit-post-data)]
+             [:p "Minutes after OP: " @slider-secs-after-op]
+             [mins-after-op-slider @slider-secs-after-op 0 (/ @max-time-secs 60)]]
             [rt-g/viz (r/track rt-g/prechew reddit-comment-graph)]
+            [:p "Double click on nodes to go directly to the comment they "
+             "represent."]
             [:p "Each node in the graph is a comment. The nodes are sized by "
              "their score (upvotes - downvotes). Their opacity represents "
              "their posting time relative to the original post (OP) - darker "
              "is older (closer to OP). All comments will have the same "
-             "(minimum) opacity if they were posted more than " max-time-days
+             "(minimum) opacity if they were posted more than "
+             (gstring/format "%.2f" (/ @max-time-secs 60 60 24) 2)
              " days after the original post."]
             [:p (count (:nodes @reddit-comment-graph)) " total comments," [:br]
               (count (filter #(>= (:score %) 1000) (:nodes @reddit-comment-graph))) " with score greater than 1000," [:br]
