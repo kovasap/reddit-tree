@@ -1,5 +1,7 @@
 # Reddit Comment Tree Visualization
 
+See live version at https://kovasap.github.io/reddit-tree.html.
+
 ## TODOs
 
 * Make edges disappear when node is invisible to make the tree look like it's
