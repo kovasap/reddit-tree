@@ -279,6 +279,22 @@
                                 (assoc node :opacity
                                        (if selected-by-slider 1 0)))))))}])
 
+(defn secs-after-op-slider [value max]
+  [:input {:type "range"
+           :value value
+           :min 0
+           :max max
+           :style {:width "100%"}
+           :on-change (fn [e]
+                        (let [new-value (.. e -target -value)]
+                          (reset! slider-secs-after-op  new-value)
+                          (update-nodes!
+                            (fn [node]
+                              (let [selected-by-slider
+                                    (<= 0 (- @slider-secs-after-op (:secs-after-op node)))]
+                                (assoc node :opacity
+                                       (if selected-by-slider 1 0)))))))}])
+
 (defn secs-to-days-hrs-mins-secs-str
   "Converts seconds to a string with hours, minutes, and seconds."
   [secs]
@@ -306,10 +322,11 @@
              [:p [:b (:title @reddit-post-data)] [:br] " posted on "
               (format-reddit-timestamp (:created @reddit-post-data))]
              ;; [:p "Post Text: " (:selftext @reddit-post-data)]
-             [:p "Time after OP (slider uses log scale): "
-              (secs-to-days-hrs-mins-secs-str @slider-secs-after-op)]
+             [:span "Scroll through time:" [secs-after-op-slider @slider-secs-after-op @max-time-secs]]
+             [:span "Log scale:" [secs-after-op-log-slider @slider-secs-after-op @max-time-secs]]
+             [:p "Time after OP: "
+              (secs-to-days-hrs-mins-secs-str @slider-secs-after-op)]]
              ;; [:p "Secs after OP: " @slider-secs-after-op]
-             [secs-after-op-log-slider @slider-secs-after-op @max-time-secs]]
             [rt-g/viz (r/track rt-g/prechew reddit-comment-graph)]
             [:p "Double click on nodes to go directly to the comment they "
              "represent."]
