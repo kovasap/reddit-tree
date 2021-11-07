@@ -5,7 +5,6 @@
   (:require
    [sablono.core :as sab]
    [sablono.server :as server]
-   [clojure.string :as cstring]
    [goog.string :as gstring]
    [goog.string.format]
    [rid3.core :as rid3 :refer [rid3->]]))

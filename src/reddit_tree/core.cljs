@@ -227,7 +227,7 @@
             [post-data comment-data] simplified-data
             time-updated-comment-data (add-secs-after-op post-data comment-data)]
          (reset! max-time-secs (get-max-time-secs time-updated-comment-data))
-         (reset! slider-secs-after-op (/ @max-time-secs 60))
+         (reset! slider-secs-after-op @max-time-secs)
          (reset! reddit-post-data (first (:children post-data)))
          (reset! reddit-comment-data time-updated-comment-data)
          (reset! reddit-comment-graph
@@ -262,18 +262,33 @@
            (update data :nodes
                    (fn [nodes] (map update-func nodes))))))
 
-(defn mins-after-op-slider [value min max]
-  [:input {:type "range" :value value :min min :max max
+(defn secs-after-op-log-slider [value max]
+  [:input {:type "range"
+           :value (Math/log value)
+           :step 0.1
+           :min 0.01
+           :max (Math/log max)
            :style {:width "100%"}
            :on-change (fn [e]
-                        (let [new-value (js/parseInt (.. e -target -value))]
-                          (reset! slider-secs-after-op new-value)
+                        (let [new-value (.. e -target -value)]
+                          (reset! slider-secs-after-op (Math/exp new-value))
                           (update-nodes!
                             (fn [node]
                               (let [selected-by-slider
-                                    (<= 0 (- (* @slider-secs-after-op 60) (:secs-after-op node)))]
+                                    (<= 0 (- @slider-secs-after-op (:secs-after-op node)))]
                                 (assoc node :opacity
                                        (if selected-by-slider 1 0)))))))}])
+
+(defn secs-to-days-hrs-mins-secs-str
+  "Converts seconds to a string with hours, minutes, and seconds."
+  [secs]
+  (let [str-days (int (/ secs 60 60 24))
+        str-hours (int (mod (/ secs 60 60) 24))
+        str-mins (int (mod (/ secs 60) 60))
+        str-secs (int (mod secs 60))]
+    (str str-days " days, " str-hours " hours, " str-mins " minutes, and "
+         str-secs " seconds.")))
+  
 
 ;; -------------------------
 ;; Views
@@ -291,8 +306,10 @@
              [:p [:b (:title @reddit-post-data)] [:br] " posted on "
               (format-reddit-timestamp (:created @reddit-post-data))]
              ;; [:p "Post Text: " (:selftext @reddit-post-data)]
-             [:p "Minutes after OP: " @slider-secs-after-op]
-             [mins-after-op-slider @slider-secs-after-op 0 (/ @max-time-secs 60)]]
+             [:p "Time after OP (slider uses log scale): "
+              (secs-to-days-hrs-mins-secs-str @slider-secs-after-op)]
+             ;; [:p "Secs after OP: " @slider-secs-after-op]
+             [secs-after-op-log-slider @slider-secs-after-op @max-time-secs]]
             [rt-g/viz (r/track rt-g/prechew reddit-comment-graph)]
             [:p "Double click on nodes to go directly to the comment they "
              "represent."]
@@ -301,7 +318,7 @@
              "their posting time relative to the original post (OP) - darker "
              "is older (closer to OP). All comments will have the same "
              "(minimum) opacity if they were posted more than "
-             (gstring/format "%.2f" (/ @max-time-secs 60 60 24) 2)
+             (gstring/format "%.2f" (/ @max-time-secs 60 60 24))
              " days after the original post."]
             [:p (count (:nodes @reddit-comment-graph)) " total comments," [:br]
               (count (filter #(>= (:score %) 1000) (:nodes @reddit-comment-graph))) " with score greater than 1000," [:br]
