@@ -283,7 +283,7 @@
    "https://www.reddit.com/r/Hydroponics/comments/p6jlip/growing_medium_falling_out_of_net_pots"])
 
 (defn home-page []
-  (let [input-value (r/atom (nth test-urls 1))]
+  (let [input-value (r/atom (nth test-urls 0))]
     (update-reddit-data! @input-value)
     (fn [] [:div [:h2 "Reddit Comment Analyzer"]
             [:div
