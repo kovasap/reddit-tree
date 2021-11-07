@@ -320,20 +320,22 @@
              "(minimum) opacity if they were posted more than "
              (gstring/format "%.2f" (/ @max-time-secs 60 60 24))
              " days after the original post."]
-            [:p (count (:nodes @reddit-comment-graph)) " total comments," [:br]
-              (count (filter #(>= (:score %) 1000) (:nodes @reddit-comment-graph))) " with score greater than 1000," [:br]
-              (count (filter #(< 99 (:score %) 1001) (:nodes @reddit-comment-graph))) " with score between 100 and 1000," [:br]
-              (count (filter #(< 49 (:score %) 101) (:nodes @reddit-comment-graph))) " with score between 50 and 100," [:br]
-              (count (filter #(< 14 (:score %) 51) (:nodes @reddit-comment-graph))) " with score between 15 and 50," [:br]
-              (count (filter #(< 6 (:score %) 16) (:nodes @reddit-comment-graph))) " with score between 5 and 15," [:br]
-              (count (filter #(< 2 (:score %) 6) (:nodes @reddit-comment-graph))) " with score between 2 and 5," [:br]
-              (count (filter #(= (:score %) 1) (:nodes @reddit-comment-graph))) " with score of 1," [:br]
-              "and " (count (filter #(< (:score %) 0) (:nodes @reddit-comment-graph))) " with score less than 0."]
-            [:details
-             [:summary "Raw Data"]
-             [:p "Graph Data: " @reddit-comment-graph]
-             [:p "Post Data: " @reddit-post-data]
-             [:p "Comment Data: " @reddit-comment-data]]])))
+            [:div (count (:nodes @reddit-comment-graph)) " total comments,"
+             [:ul
+              [:li (count (filter #(>= (:score %) 1000) (:nodes @reddit-comment-graph))) " with score greater than 1000,"]
+              [:li (count (filter #(< 99 (:score %) 1001) (:nodes @reddit-comment-graph))) " with score between 100 and 1000,"]
+              [:li (count (filter #(< 49 (:score %) 101) (:nodes @reddit-comment-graph))) " with score between 50 and 100,"]
+              [:li (count (filter #(< 14 (:score %) 51) (:nodes @reddit-comment-graph))) " with score between 15 and 50,"]
+              [:li (count (filter #(< 6 (:score %) 16) (:nodes @reddit-comment-graph))) " with score between 5 and 15,"]
+              [:li (count (filter #(< 2 (:score %) 6) (:nodes @reddit-comment-graph))) " with score between 2 and 5,"]
+              [:li (count (filter #(= (:score %) 1) (:nodes @reddit-comment-graph))) " with score of 1,"]
+              [:li (count (filter #(< (:score %) 0) (:nodes @reddit-comment-graph))) " with score less than 0."]]]
+            [:div {:class "dev-notes"} "Source code can be found at " [:a {:href "https://github.com/kovasap/reddit-tree"} "github.com/kovasap/reddit-tree"] "."
+              [:details
+               [:summary "Raw Data"]
+               [:p "Graph Data: " @reddit-comment-graph]
+               [:p "Post Data: " @reddit-post-data]
+               [:p "Comment Data: " @reddit-comment-data]]]])))
 
 
 ;; -------------------------
