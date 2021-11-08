@@ -4,6 +4,7 @@ See live version at https://kovasap.github.io/reddit-tree.html.
 
 ## TODOs
 
+* Fix release build dragging errors https://github.com/thheller/shadow-cljs/issues/955.
 * Make edges disappear when node is invisible to make the tree look like it's
   growing as the time slider is used.
 * Try on larger data sets - add fail safes for when dataset crashes code.
