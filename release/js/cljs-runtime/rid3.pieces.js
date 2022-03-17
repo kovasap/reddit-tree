@@ -22,8 +22,8 @@ rid3.pieces.warn_if_piece_shouldnt_have_children = (function rid3$pieces$warn_if
 return console.warn(["[rid3] ",cljs.core.str.cljs$core$IFn$_invoke$arity$1(kind)," piece cannot have children"].join(''));
 });
 rid3.pieces.handle_piece_did_mount = (function rid3$pieces$handle_piece_did_mount(var_args){
-var G__26865 = arguments.length;
-switch (G__26865) {
+var G__40075 = arguments.length;
+switch (G__40075) {
 case 2:
 return rid3.pieces.handle_piece_did_mount.cljs$core$IFn$_invoke$arity$2((arguments[(0)]),(arguments[(1)]));
 
@@ -43,11 +43,11 @@ return rid3.pieces.handle_piece_did_mount.cljs$core$IFn$_invoke$arity$3(piece,op
 }));
 
 (rid3.pieces.handle_piece_did_mount.cljs$core$IFn$_invoke$arity$3 = (function (piece,opts,prev_classes){
-var map__26866 = piece;
-var map__26866__$1 = cljs.core.__destructure_map(map__26866);
-var kind = cljs.core.get.cljs$core$IFn$_invoke$arity$2(map__26866__$1,new cljs.core.Keyword(null,"kind","kind",-717265803));
-var class$ = cljs.core.get.cljs$core$IFn$_invoke$arity$2(map__26866__$1,new cljs.core.Keyword(null,"class","class",-2030961996));
-var did_mount = cljs.core.get.cljs$core$IFn$_invoke$arity$2(map__26866__$1,new cljs.core.Keyword(null,"did-mount","did-mount",918232960));
+var map__40079 = piece;
+var map__40079__$1 = cljs.core.__destructure_map(map__40079);
+var kind = cljs.core.get.cljs$core$IFn$_invoke$arity$2(map__40079__$1,new cljs.core.Keyword(null,"kind","kind",-717265803));
+var class$ = cljs.core.get.cljs$core$IFn$_invoke$arity$2(map__40079__$1,new cljs.core.Keyword(null,"class","class",-2030961996));
+var did_mount = cljs.core.get.cljs$core$IFn$_invoke$arity$2(map__40079__$1,new cljs.core.Keyword(null,"did-mount","did-mount",918232960));
 rid3.pieces.warn_if_piece_needs_class(kind,class$);
 
 if(cljs.core._EQ_.cljs$core$IFn$_invoke$arity$2(kind,new cljs.core.Keyword(null,"container","container",-1736937707))){
@@ -89,53 +89,53 @@ return cljs.core._EQ_.cljs$core$IFn$_invoke$arity$2(kind,new cljs.core.Keyword(n
 return and__4210__auto__;
 }
 })())){
-var seq__26867 = cljs.core.seq(children);
-var chunk__26868 = null;
-var count__26869 = (0);
-var i__26870 = (0);
+var seq__40083 = cljs.core.seq(children);
+var chunk__40084 = null;
+var count__40085 = (0);
+var i__40086 = (0);
 while(true){
-if((i__26870 < count__26869)){
-var child = chunk__26868.cljs$core$IIndexed$_nth$arity$2(null,i__26870);
+if((i__40086 < count__40085)){
+var child = chunk__40084.cljs$core$IIndexed$_nth$arity$2(null,i__40086);
 rid3.pieces.handle_piece_did_mount.cljs$core$IFn$_invoke$arity$3(child,opts,cljs.core.conj.cljs$core$IFn$_invoke$arity$2(prev_classes,class$));
 
 
-var G__26880 = seq__26867;
-var G__26881 = chunk__26868;
-var G__26882 = count__26869;
-var G__26883 = (i__26870 + (1));
-seq__26867 = G__26880;
-chunk__26868 = G__26881;
-count__26869 = G__26882;
-i__26870 = G__26883;
+var G__40102 = seq__40083;
+var G__40103 = chunk__40084;
+var G__40104 = count__40085;
+var G__40105 = (i__40086 + (1));
+seq__40083 = G__40102;
+chunk__40084 = G__40103;
+count__40085 = G__40104;
+i__40086 = G__40105;
 continue;
 } else {
-var temp__5753__auto__ = cljs.core.seq(seq__26867);
+var temp__5753__auto__ = cljs.core.seq(seq__40083);
 if(temp__5753__auto__){
-var seq__26867__$1 = temp__5753__auto__;
-if(cljs.core.chunked_seq_QMARK_(seq__26867__$1)){
-var c__4638__auto__ = cljs.core.chunk_first(seq__26867__$1);
-var G__26884 = cljs.core.chunk_rest(seq__26867__$1);
-var G__26885 = c__4638__auto__;
-var G__26886 = cljs.core.count(c__4638__auto__);
-var G__26887 = (0);
-seq__26867 = G__26884;
-chunk__26868 = G__26885;
-count__26869 = G__26886;
-i__26870 = G__26887;
+var seq__40083__$1 = temp__5753__auto__;
+if(cljs.core.chunked_seq_QMARK_(seq__40083__$1)){
+var c__4638__auto__ = cljs.core.chunk_first(seq__40083__$1);
+var G__40106 = cljs.core.chunk_rest(seq__40083__$1);
+var G__40107 = c__4638__auto__;
+var G__40108 = cljs.core.count(c__4638__auto__);
+var G__40109 = (0);
+seq__40083 = G__40106;
+chunk__40084 = G__40107;
+count__40085 = G__40108;
+i__40086 = G__40109;
 continue;
 } else {
-var child = cljs.core.first(seq__26867__$1);
+var child = cljs.core.first(seq__40083__$1);
 rid3.pieces.handle_piece_did_mount.cljs$core$IFn$_invoke$arity$3(child,opts,cljs.core.conj.cljs$core$IFn$_invoke$arity$2(prev_classes,class$));
 
 
-var G__26888 = cljs.core.next(seq__26867__$1);
-var G__26889 = null;
-var G__26890 = (0);
-var G__26891 = (0);
-seq__26867 = G__26888;
-chunk__26868 = G__26889;
-count__26869 = G__26890;
-i__26870 = G__26891;
+var G__40110 = cljs.core.next(seq__40083__$1);
+var G__40111 = null;
+var G__40112 = (0);
+var G__40113 = (0);
+seq__40083 = G__40110;
+chunk__40084 = G__40111;
+count__40085 = G__40112;
+i__40086 = G__40113;
 continue;
 }
 } else {
@@ -157,8 +157,8 @@ return null;
 (rid3.pieces.handle_piece_did_mount.cljs$lang$maxFixedArity = 3);
 
 rid3.pieces.handle_piece_did_update = (function rid3$pieces$handle_piece_did_update(var_args){
-var G__26872 = arguments.length;
-switch (G__26872) {
+var G__40092 = arguments.length;
+switch (G__40092) {
 case 2:
 return rid3.pieces.handle_piece_did_update.cljs$core$IFn$_invoke$arity$2((arguments[(0)]),(arguments[(1)]));
 
@@ -178,14 +178,14 @@ return rid3.pieces.handle_piece_did_update.cljs$core$IFn$_invoke$arity$3(piece,o
 }));
 
 (rid3.pieces.handle_piece_did_update.cljs$core$IFn$_invoke$arity$3 = (function (piece,opts,prev_classes){
-var map__26873 = opts;
-var map__26873__$1 = cljs.core.__destructure_map(map__26873);
-var id = cljs.core.get.cljs$core$IFn$_invoke$arity$2(map__26873__$1,new cljs.core.Keyword(null,"id","id",-1388402092));
-var ratom = cljs.core.get.cljs$core$IFn$_invoke$arity$2(map__26873__$1,new cljs.core.Keyword(null,"ratom","ratom",-126521267));
-var map__26874 = piece;
-var map__26874__$1 = cljs.core.__destructure_map(map__26874);
-var kind = cljs.core.get.cljs$core$IFn$_invoke$arity$2(map__26874__$1,new cljs.core.Keyword(null,"kind","kind",-717265803));
-var class$ = cljs.core.get.cljs$core$IFn$_invoke$arity$2(map__26874__$1,new cljs.core.Keyword(null,"class","class",-2030961996));
+var map__40093 = opts;
+var map__40093__$1 = cljs.core.__destructure_map(map__40093);
+var id = cljs.core.get.cljs$core$IFn$_invoke$arity$2(map__40093__$1,new cljs.core.Keyword(null,"id","id",-1388402092));
+var ratom = cljs.core.get.cljs$core$IFn$_invoke$arity$2(map__40093__$1,new cljs.core.Keyword(null,"ratom","ratom",-126521267));
+var map__40094 = piece;
+var map__40094__$1 = cljs.core.__destructure_map(map__40094);
+var kind = cljs.core.get.cljs$core$IFn$_invoke$arity$2(map__40094__$1,new cljs.core.Keyword(null,"kind","kind",-717265803));
+var class$ = cljs.core.get.cljs$core$IFn$_invoke$arity$2(map__40094__$1,new cljs.core.Keyword(null,"class","class",-2030961996));
 rid3.pieces.warn_if_piece_needs_class(kind,class$);
 
 if(cljs.core._EQ_.cljs$core$IFn$_invoke$arity$2(kind,new cljs.core.Keyword(null,"container","container",-1736937707))){
@@ -227,53 +227,53 @@ return cljs.core._EQ_.cljs$core$IFn$_invoke$arity$2(kind,new cljs.core.Keyword(n
 return and__4210__auto__;
 }
 })())){
-var seq__26875 = cljs.core.seq(children);
-var chunk__26876 = null;
-var count__26877 = (0);
-var i__26878 = (0);
+var seq__40096 = cljs.core.seq(children);
+var chunk__40097 = null;
+var count__40098 = (0);
+var i__40099 = (0);
 while(true){
-if((i__26878 < count__26877)){
-var child = chunk__26876.cljs$core$IIndexed$_nth$arity$2(null,i__26878);
+if((i__40099 < count__40098)){
+var child = chunk__40097.cljs$core$IIndexed$_nth$arity$2(null,i__40099);
 rid3.pieces.handle_piece_did_update.cljs$core$IFn$_invoke$arity$3(child,opts,cljs.core.conj.cljs$core$IFn$_invoke$arity$2(prev_classes,class$));
 
 
-var G__26893 = seq__26875;
-var G__26894 = chunk__26876;
-var G__26895 = count__26877;
-var G__26896 = (i__26878 + (1));
-seq__26875 = G__26893;
-chunk__26876 = G__26894;
-count__26877 = G__26895;
-i__26878 = G__26896;
+var G__40115 = seq__40096;
+var G__40116 = chunk__40097;
+var G__40117 = count__40098;
+var G__40118 = (i__40099 + (1));
+seq__40096 = G__40115;
+chunk__40097 = G__40116;
+count__40098 = G__40117;
+i__40099 = G__40118;
 continue;
 } else {
-var temp__5753__auto__ = cljs.core.seq(seq__26875);
+var temp__5753__auto__ = cljs.core.seq(seq__40096);
 if(temp__5753__auto__){
-var seq__26875__$1 = temp__5753__auto__;
-if(cljs.core.chunked_seq_QMARK_(seq__26875__$1)){
-var c__4638__auto__ = cljs.core.chunk_first(seq__26875__$1);
-var G__26897 = cljs.core.chunk_rest(seq__26875__$1);
-var G__26898 = c__4638__auto__;
-var G__26899 = cljs.core.count(c__4638__auto__);
-var G__26900 = (0);
-seq__26875 = G__26897;
-chunk__26876 = G__26898;
-count__26877 = G__26899;
-i__26878 = G__26900;
+var seq__40096__$1 = temp__5753__auto__;
+if(cljs.core.chunked_seq_QMARK_(seq__40096__$1)){
+var c__4638__auto__ = cljs.core.chunk_first(seq__40096__$1);
+var G__40119 = cljs.core.chunk_rest(seq__40096__$1);
+var G__40120 = c__4638__auto__;
+var G__40121 = cljs.core.count(c__4638__auto__);
+var G__40122 = (0);
+seq__40096 = G__40119;
+chunk__40097 = G__40120;
+count__40098 = G__40121;
+i__40099 = G__40122;
 continue;
 } else {
-var child = cljs.core.first(seq__26875__$1);
+var child = cljs.core.first(seq__40096__$1);
 rid3.pieces.handle_piece_did_update.cljs$core$IFn$_invoke$arity$3(child,opts,cljs.core.conj.cljs$core$IFn$_invoke$arity$2(prev_classes,class$));
 
 
-var G__26901 = cljs.core.next(seq__26875__$1);
-var G__26902 = null;
-var G__26903 = (0);
-var G__26904 = (0);
-seq__26875 = G__26901;
-chunk__26876 = G__26902;
-count__26877 = G__26903;
-i__26878 = G__26904;
+var G__40123 = cljs.core.next(seq__40096__$1);
+var G__40124 = null;
+var G__40125 = (0);
+var G__40126 = (0);
+seq__40096 = G__40123;
+chunk__40097 = G__40124;
+count__40098 = G__40125;
+i__40099 = G__40126;
 continue;
 }
 } else {
